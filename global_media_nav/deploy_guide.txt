@@ -1,0 +1,9 @@
+部署指南（一步到位）
+1) Vercel（无需本地环境）
+   - 登录 vercel.com（GitHub/Google 登录）
+   - New Project → Import → Upload → 选取 ZIP 文件 → Deploy
+2) Netlify
+   - 登录 netlify.com → Sites → Add new site → Upload → 选择 ZIP
+3) GitHub Pages
+   - 将文件 push 到仓库的 gh-pages 分支或 master/main（按设置）
+   - 在仓库设置 -> Pages -> 指定分支并保存

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>全球主流媒体导航</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div>
+        <h1>全球主流媒体导航</h1>
+        <p class="subtitle">按国家浏览主流媒体网站 — 点击打开、支持搜索与导出CSV（黑白极简风）</p>
+      </div>
+      <div class="actions">
+        <input id="q" class="search" placeholder="搜索媒体名称、国家或关键词..." />
+        <select id="countrySelect"><option value="">全部国家</option></select>
+        <button id="exportBtn" class="btn">导出 CSV</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="info">结果：<span id="count">0</span> 个媒体</div>
+      <div id="grid" class="grid"></div>
+
+      <h2 class="h2">快速选择国家</h2>
+      <div id="countries" class="chips"></div>
+    </main>
+
+    <footer class="footer">提示：这是可部署的静态网页。将此目录上传到 Vercel / Netlify / GitHub Pages 即可上线。</footer>
+  </div>
+
+  <script src="media-data.js"></script>
+  <script>
+    // Flatten data
+    const flat = MEDIA_DATA.flatMap(c => c.outlets.map(o=>({country:c.country,...o})));
+    const grid = document.getElementById('grid');
+    const count = document.getElementById('count');
+    const q = document.getElementById('q');
+    const countrySelect = document.getElementById('countrySelect');
+    const countriesDiv = document.getElementById('countries');
+
+    // Populate select and chips
+    const countries = MEDIA_DATA.map(d=>d.country);
+    countries.forEach(c=>{
+      const opt = document.createElement('option'); opt.value=c; opt.textContent=c; countrySelect.appendChild(opt);
+      const chip = document.createElement('button'); chip.className='chip'; chip.textContent=c;
+      chip.onclick = ()=>{ selectedCountry = (selectedCountry===c?'':c); updateUI(); };
+      countriesDiv.appendChild(chip);
+    });
+
+    let selectedCountry = '';
+
+    function renderCard(item){
+      const a = document.createElement('a');
+      a.href = item.url; a.target='_blank'; a.rel='noopener noreferrer';
+      a.className = 'card';
+
+      const top = document.createElement('div'); top.className='card-top';
+      const title = document.createElement('div'); title.className='card-title'; title.textContent = item.name;
+      const meta = document.createElement('div'); meta.className='card-meta'; meta.textContent = item.country;
+      top.appendChild(title); top.appendChild(meta);
+
+      const desc = document.createElement('div'); desc.className='card-desc'; desc.textContent = item.descr || '';
+
+      const open = document.createElement('div'); open.className='card-open'; open.textContent='打开';
+      a.appendChild(top); a.appendChild(desc); a.appendChild(open);
+      return a;
+    }
+
+    function filterItems(qstr, country){
+      return flat.filter(it=>{
+        if(country && it.country !== country) return false;
+        if(!qstr) return true;
+        const s = qstr.toLowerCase();
+        return it.name.toLowerCase().includes(s) || (it.descr||'').toLowerCase().includes(s) || it.country.toLowerCase().includes(s);
+      });
+    }
+
+    function updateUI(){
+      const val = q.value.trim();
+      const items = filterItems(val, selectedCountry||countrySelect.value);
+      grid.innerHTML='';
+      items.forEach(it=> grid.appendChild(renderCard(it)));
+      count.textContent = items.length;
+      Array.from(countriesDiv.children).forEach(chip=>{
+        if(chip.textContent === (selectedCountry || countrySelect.value)) chip.classList.add('chip-active'); else chip.classList.remove('chip-active');
+      });
+    }
+
+    q.addEventListener('input', updateUI);
+    countrySelect.addEventListener('change', ()=>{ selectedCountry=''; updateUI(); });
+
+    document.getElementById('exportBtn').addEventListener('click', ()=>{
+      const items = filterItems(q.value.trim(), selectedCountry||countrySelect.value);
+      const header = ['国家','媒体名称','网址','简介'];
+      const rows = items.map(it=>[it.country, it.name, it.url, it.descr || '']);
+      const csv = [header].concat(rows).map(r=>r.map(cell=>`"${String(cell||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='global_media.csv'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    // initial render
+    updateUI();
+  </script>
+</body>
+</html>
